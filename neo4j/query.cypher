@@ -91,19 +91,10 @@ ORDER BY NumUnresolved DESC
 // Query 8: for a given query date, return the total number of crimes occurred on that day for each area (post_code),
 // the total number of people living in each area end the total number of calls made by the inhabitants on that day.
 
-MATCH (c:Crime)-[:OCCURRED_AT]->(l:Location)
-WHERE c.date = date("2017-08-06")
-WITH l.postcode AS Area, COUNT(DISTINCT c.id) AS TotalCrimes
-
-MATCH (p:Person)-[:CURRENT_ADDRESS]->(l2:Location {postcode: Area})
-WITH Area, TotalCrimes, COUNT(p) AS TotalPeople
-
-OPTIONAL MATCH (p)-[:HAS_PHONE]->(ph:Phone)<-[:CALLED|:CALLER]-(cl:PhoneCall)
-WHERE cl.call_date = date("2017-08-06") AND cl.call_type = "CALL"
-WITH Area, TotalCrimes, TotalPeople, COUNT(DISTINCT cl.id) AS TotalCalls
-
-RETURN Area, TotalCrimes, TotalPeople, TotalCalls
-ORDER BY Area
+MATCH (c:Crime)-[:OCCURRED_AT]->(l:Location)<-[:CURRENT_ADDRESS]-(p:Person)-[:HAS_PHONE]->(ph:Phone)<-[:CALLED|:CALLER]-(cl:PhoneCall)
+WITH l.postcode AS Area, COUNT(DISTINCT c.id) AS TotalCrimes, COUNT(DISTINCT p) AS TotalPeople, COUNT(DISTINCT cl.id) AS TotalTraffic
+RETURN Area, TotalCrimes, TotalPeople, TotalTraffic
+ORDER BY TotalCrimes DESC, TotalTraffic DESC, TotalPeople DESC, Area DESC
 
 
 // Query 9: for each Crime Type return the most common outcome, its frequency, the total number of cases and the percentage of the most common outcome over all the total cases
