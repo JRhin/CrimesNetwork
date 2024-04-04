@@ -25,16 +25,15 @@ LIMIT 10;
 // This change measures the volatility without considering the direction of the change (increase or decrease).
 
 MATCH (c:Crime)-[:OCCURRED_AT]->(l:Location)
-WITH l.postcode AS area, c.date AS crime_date, COUNT(*) AS crime_count
-ORDER BY area, crime_date
-WITH area, COLLECT({date: crime_date, count: crime_count}) AS daily_data, SUM(crime_count) as tot_crime_count
-UNWIND range(1, SIZE(daily_data) - 1) AS idx
-WITH area, daily_data[idx].date AS date, tot_crime_count,
-     ABS(daily_data[idx].count - daily_data[idx-1].count) AS daily_change
-WITH area, AVG(daily_change) AS avg_daily_change, tot_crime_count
-ORDER BY tot_crime_count DESC 
+WITH l.postcode AS Area, c.date AS CrimeDate, COUNT(DISTINCT c.id) AS CrimeCount
+ORDER BY Area, CrimeDate
+WITH Area, COLLECT({date: CrimeDate, count: CrimeCount}) AS DailyData
+UNWIND range(1, SIZE(DailyData) - 1) AS idx
+WITH Area, ABS(DailyData[idx].count - DailyData[idx-1].count) AS DailyChange
+WITH Area, ROUND(AVG(DailyChange), 2) AS AvgDailyChange
+ORDER BY AvgDailyChange DESC
 LIMIT 10
-RETURN area, ROUND(avg_daily_change, 2);
+RETURN Area, AvgDailyChange;
 
 
 // Query 4: find the usage frequency for each vehicle type for the "vehicle crimes"

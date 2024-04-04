@@ -209,6 +209,32 @@ LIMIT 10;
 
 -- Q3
 
+SELECT
+    d1.area,
+    ROUND(AVG(ABS(d1.daily_change)), 2) AS avg_daily_change
+FROM (
+    SELECT
+        d.area,
+        d.date,
+        d.crime_count - LAG(d.crime_count, 1, d.crime_count) OVER (PARTITION BY d.area ORDER BY d.date) AS daily_change
+    FROM (
+        SELECT
+            l.postcode AS area,
+            c.date,
+            COUNT(DISTINCT c.id) AS crime_count
+        FROM
+            Crimes c
+        JOIN Occurred_at o ON c.id = o.crime_id
+        JOIN Locations l ON o.location_id = l.id
+        GROUP BY
+            l.postcode, c.date
+    ) AS d
+) AS d1
+GROUP BY
+    d1.area
+ORDER BY
+    avg_daily_change DESC
+LIMIT 10;
 
 
 -- Q4
@@ -312,7 +338,26 @@ ORDER BY
     TotalNumUnresolved DESC;
 
 
+-- Q8
 
+SELECT l.postcode AS Area,
+	   COUNT(DISTINCT c.id) AS TotalCrimes,
+	   COUNT(DISTINCT p.id) AS TotalPeople,
+	   COUNT(DISTINCT all_calls.call_id) AS TotalTraffic
+FROM crimes AS c
+LEFT JOIN occurred_at o ON o.crime_id = c.id
+LEFT JOIN locations l ON o.location_id = l.id
+JOIN current_address ca ON ca.location_id = l.id
+JOIN people p ON p.id = ca.person_id
+LEFT JOIN has_phone hp ON p.id = hp.person_id
+LEFT JOIN (
+	SELECT *
+	FROM caller
+	UNION
+	SELECT *
+	FROM called) AS all_calls ON hp.phone_id = all_calls.phone_id
+GROUP BY l.postcode
+ORDER BY TotalCrimes DESC, TotalTraffic DESC, TotalPeople DESC
 
 
 -- Q9
