@@ -1,6 +1,28 @@
 -- Create the old non-optimized schema
 
-CREATE TABLE Locations (
+CREATE OR REPLACE PROCEDURE create_populate_schema()
+LANGUAGE SQL 
+AS $$
+
+-- Drop tables before updating/populating them
+
+DROP TABLE IF EXISTS Vehicles;
+DROP TABLE IF EXISTS Crimes;
+DROP TABLE IF EXISTS Officer;
+DROP TABLE IF EXISTS PhoneCalls;
+DROP TABLE IF EXISTS Phones;
+DROP TABLE IF EXISTS Current_address;
+DROP TABLE IF EXISTS Involved_in;
+DROP TABLE IF EXISTS Occurred_at;
+DROP TABLE IF EXISTS Has_phone;
+DROP TABLE IF EXISTS Family_rel;
+DROP TABLE IF EXISTS Caller;
+DROP TABLE IF EXISTS Called;
+DROP TABLE IF EXISTS Investigated_by;
+DROP TABLE IF EXISTS People;
+DROP TABLE IF EXISTS Locations;
+
+CREATE TABLE IF NOT EXISTS Locations (
     id INT PRIMARY KEY,
     latitude FLOAT,
     longitude FLOAT,
@@ -8,7 +30,7 @@ CREATE TABLE Locations (
     postcode TEXT
 );
 
-CREATE TABLE Crimes (
+CREATE TABLE IF NOT EXISTS Crimes (
     id INT PRIMARY KEY,
     date DATE,
     type TEXT,
@@ -17,7 +39,7 @@ CREATE TABLE Crimes (
     charge TEXT
 );
 
-CREATE TABLE Officer (
+CREATE TABLE IF NOT EXISTS Officer (
     id INT PRIMARY KEY,
     badge_no TEXT,
     rank TEXT,
@@ -25,7 +47,7 @@ CREATE TABLE Officer (
     surname TEXT
 );
 
-CREATE TABLE People (
+CREATE TABLE IF NOT EXISTS People (
     id INT PRIMARY KEY,
     name TEXT,
     surname TEXT,
@@ -33,7 +55,7 @@ CREATE TABLE People (
     nhs_no TEXT
 );
 
-CREATE TABLE PhoneCalls (
+CREATE TABLE IF NOT EXISTS PhoneCalls (
     id INT PRIMARY KEY,
     call_date DATE,
     call_time TIME,
@@ -41,13 +63,13 @@ CREATE TABLE PhoneCalls (
     call_type TEXT
 );
 
-CREATE TABLE Phones (
+CREATE TABLE IF NOT EXISTS Phones (
     id INT PRIMARY KEY,
     phoneNo TEXT
 );
 
 
-CREATE TABLE Vehicles (
+CREATE TABLE IF NOT EXISTS Vehicles (
     id INT PRIMARY KEY,
     make TEXT,
     model TEXT,
@@ -55,46 +77,47 @@ CREATE TABLE Vehicles (
     reg TEXT
 );
 
-CREATE TABLE Current_address (
+CREATE TABLE IF NOT EXISTS Current_address (
     person_id INT,
     location_id INT
 );
 
-CREATE TABLE Investigated_by (
+CREATE TABLE IF NOT EXISTS Investigated_by (
     crime_id INT,
     officer_id INT
 );
 
-CREATE TABLE Involved_in (
+CREATE TABLE IF NOT EXISTS Involved_in (
     vehicle_id INT,
     crime_id INT
 );
 
-CREATE TABLE Occurred_at (
+CREATE TABLE IF NOT EXISTS Occurred_at (
     location_id INT,
     crime_id INT
 );
 
 
-CREATE TABLE Has_phone (
+CREATE TABLE IF NOT EXISTS Has_phone (
     person_id INT,
     phone_id INT
 );
 
-CREATE TABLE Family_rel (
+CREATE TABLE IF NOT EXISTS Family_rel (
     person_id1 INT,
     person_id2 INT
 );
 
-CREATE TABLE Caller (
+CREATE TABLE IF NOT EXISTS Caller (
     call_id INT,
     phone_id INT
 );
 
-CREATE TABLE Called (
+CREATE TABLE IF NOT EXISTS Called (
     call_id INT,
     phone_id INT
 );
+
 
 -- Load data in DataFrame
 
@@ -160,36 +183,37 @@ COPY Investigated_by(crime_id, officer_id)
 FROM 'C:\Users\Public\pole-data-importer\crime-investigation.relationships.INVESTIGATED_BY.csv'
 WITH (FORMAT csv, HEADER true, DELIMITER ',');
 
+$$;
+
 -- Modify and optimize the old schema
 
+CREATE OR REPLACE PROCEDURE optimize_types_attributes()
+LANGUAGE SQL 
+AS $$
 
 -- Crimes
 
 ALTER TABLE Crimes
-ADD COLUMN officer_id INT,
-ADD COLUMN location_id INT,
-ADD CONSTRAINT investigated_by FOREIGN KEY (officer_id) REFERENCES Officer(id),
-ADD CONSTRAINT occurred_at FOREIGN KEY (location_id) REFERENCES Locations(id),
+ADD COLUMN IF NOT EXISTS officer_id INT,
+ADD COLUMN IF NOT EXISTS location_id INT,
 ALTER COLUMN type TYPE VARCHAR(50),
 ALTER COLUMN last_outcome TYPE VARCHAR(255),
 ALTER COLUMN note TYPE VARCHAR(255),
-ALTER COLUMN charge TYPE VARCHAR(255);
-
-UPDATE Crimes
-SET officer_id = (SELECT officer_id FROM investigated_by WHERE crime_id = Crimes.id),
-	location_id = (SELECT location_id FROM occurred_at WHERE crime_id = Crimes.id);
+ALTER COLUMN charge TYPE VARCHAR(255),
+DROP CONSTRAINT IF EXISTS investigated_by,
+DROP CONSTRAINT IF EXISTS occurred_at,
+ADD CONSTRAINT investigated_by FOREIGN KEY (officer_id) REFERENCES Officer(id),
+ADD CONSTRAINT occurred_at FOREIGN KEY (location_id) REFERENCES Locations(id);
 
 -- Vehicles
 
 ALTER TABLE Vehicles
-ADD COLUMN crime_id INT,
-ADD CONSTRAINT involved_in FOREIGN KEY (crime_id) REFERENCES Crimes(id),
+ADD COLUMN IF NOT EXISTS crime_id INT,
 ALTER COLUMN make TYPE VARCHAR(50),
 ALTER COLUMN model TYPE VARCHAR(50),
-ALTER COLUMN reg TYPE VARCHAR(50);
-
-UPDATE Vehicles
-SET crime_id = (SELECT crime_id FROM involved_in WHERE vehicle_id = Vehicles.id);
+ALTER COLUMN reg TYPE VARCHAR(50),
+DROP CONSTRAINT IF EXISTS involved_in,
+ADD CONSTRAINT involved_in FOREIGN KEY (crime_id) REFERENCES Crimes(id);
 
 -- Officer
 
@@ -207,50 +231,47 @@ ADD UNIQUE (badge_no);
 -- People
 
 ALTER TABLE People
-ADD COLUMN address_id INT,
-ADD CONSTRAINT age_bound CHECK (age >= 0 AND age <= 120),
-ADD CONSTRAINT current_address FOREIGN KEY (address_id) REFERENCES Locations(id),
+ADD COLUMN IF NOT EXISTS address_id INT,
 ALTER COLUMN name TYPE VARCHAR(100),
 ALTER COLUMN surname TYPE VARCHAR(100),
 ALTER COLUMN nhs_no TYPE VARCHAR(20),
 ALTER COLUMN age TYPE SMALLINT,
 ALTER COLUMN name SET NOT NULL,
 ALTER COLUMN surname SET NOT NULL,
-ADD UNIQUE (nhs_no);
-
-UPDATE People
-SET address_id = (SELECT location_id FROM current_address WHERE person_id = People.id);
+ADD UNIQUE (nhs_no),
+DROP CONSTRAINT IF EXISTS age_bound,
+DROP CONSTRAINT IF EXISTS current_address,
+ADD CONSTRAINT age_bound CHECK (age >= 0 AND age <= 120),
+ADD CONSTRAINT current_address FOREIGN KEY (address_id) REFERENCES Locations(id);
 
 -- Family_Rel
 
 ALTER TABLE Family_rel
+DROP CONSTRAINT IF EXISTS p1,
+DROP CONSTRAINT IF EXISTS p2,
 ADD CONSTRAINT p1 FOREIGN KEY (person_id1) REFERENCES People(id),
 ADD CONSTRAINT p2 FOREIGN KEY (person_id2) REFERENCES People(id);
 
 -- PhoneCalls
 
 ALTER TABLE PhoneCalls
-ADD COLUMN from_phone_id INT,
-ADD COLUMN to_phone_id INT,
-ADD CONSTRAINT caller FOREIGN KEY (from_phone_id) REFERENCES Phones(id),
-ADD CONSTRAINT called FOREIGN KEY (to_phone_id) REFERENCES Phones(id),
+ADD COLUMN IF NOT EXISTS from_phone_id INT,
+ADD COLUMN IF NOT EXISTS to_phone_id INT,
 ALTER COLUMN call_date TYPE DATE,
 ALTER COLUMN call_duration TYPE SMALLINT,
-ALTER COLUMN call_time TYPE TIME;
-
-UPDATE PhoneCalls
-SET to_phone_id = (SELECT phone_id FROM called WHERE call_id = PhoneCalls.id),
-	from_phone_id = (SELECT phone_id FROM caller WHERE call_id = PhoneCalls.id);
+ALTER COLUMN call_time TYPE TIME,
+DROP CONSTRAINT IF EXISTS caller,
+DROP CONSTRAINT IF EXISTS called,
+ADD CONSTRAINT caller FOREIGN KEY (from_phone_id) REFERENCES Phones(id),
+ADD CONSTRAINT called FOREIGN KEY (to_phone_id) REFERENCES Phones(id);
 
 -- Phones 
 
 ALTER TABLE Phones
-ADD COLUMN owner_id INT,
-ADD CONSTRAINT has_phone FOREIGN KEY (owner_id) REFERENCES People(id),
-ALTER COLUMN phoneNo TYPE VARCHAR(20);
-
-UPDATE Phones
-SET owner_id = (SELECT person_id FROM has_phone WHERE phone_id = Phones.id);
+ADD COLUMN IF NOT EXISTS owner_id INT,
+ALTER COLUMN phoneNo TYPE VARCHAR(20),
+DROP CONSTRAINT IF EXISTS has_phone,
+ADD CONSTRAINT has_phone FOREIGN KEY (owner_id) REFERENCES People(id);
 
 -- Locations
 
@@ -264,7 +285,6 @@ ALTER COLUMN longitude SET NOT NULL,
 ALTER COLUMN address SET NOT NULL,
 ALTER COLUMN postcode SET NOT NULL;
 
-
 -- Create indexes
 
 CREATE INDEX IF NOT EXISTS locations_index ON Locations(id);
@@ -275,6 +295,37 @@ CREATE INDEX IF NOT EXISTS vehicles_index ON Vehicles(id);
 CREATE INDEX IF NOT EXISTS phones_index ON Phones(id);
 CREATE INDEX IF NOT EXISTS phonecalls_index ON PhoneCalls(id);
 
+$$;
+
+-- Populate the DB
+
+CALL create_populate_schema();
+call optimize_types_attributes();
+
+UPDATE Crimes
+SET officer_id = (SELECT officer_id FROM investigated_by WHERE crime_id = Crimes.id),
+	location_id = (SELECT location_id FROM occurred_at WHERE crime_id = Crimes.id);
+
+-- Vehicles
+	
+UPDATE Vehicles
+SET crime_id = (SELECT crime_id FROM involved_in WHERE vehicle_id = Vehicles.id);
+
+-- People
+
+UPDATE People
+SET address_id = (SELECT location_id FROM current_address WHERE person_id = People.id);
+
+-- PhoneCalls
+
+UPDATE PhoneCalls
+SET to_phone_id = (SELECT phone_id FROM called WHERE call_id = PhoneCalls.id),
+	from_phone_id = (SELECT phone_id FROM caller WHERE call_id = PhoneCalls.id);
+
+-- Phones
+
+UPDATE Phones
+SET owner_id = (SELECT person_id FROM has_phone WHERE phone_id = Phones.id);
 
 -- Drop old relation tables from non-optimized schema
 
@@ -285,6 +336,7 @@ DROP TABLE current_address;
 DROP TABLE investigated_by;
 DROP TABLE called;
 DROP TABLE caller;
+
 
 -- Queries 
 
@@ -454,4 +506,3 @@ FROM
 WHERE rn = 1
 ORDER BY
     TotalCases DESC, CrimeType;
-
