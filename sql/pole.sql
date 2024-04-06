@@ -114,11 +114,6 @@ CREATE TABLE Called (
     call_id INT,
     phone_id INT
 );
-
-CREATE TABLE Knows (
-    person_id1 INT,
-    person_id2 INT
-);
 	
 
 -- Load data in DataFrame
@@ -181,10 +176,6 @@ COPY Called(call_id, phone_id)
 FROM 'C:\Users\Public\pole-data-importer\crime-investigation.relationships.CALLED.csv'
 WITH (FORMAT csv, HEADER true, DELIMITER ',');
 
-COPY Knows(person_id1, person_id2)
-FROM 'C:\Users\Public\pole-data-importer\crime-investigation.relationships.KNOWS.csv'
-WITH (FORMAT csv, HEADER true, DELIMITER ',');
-
 COPY Investigated_by(crime_id, officer_id)
 FROM 'C:\Users\Public\pole-data-importer\crime-investigation.relationships.INVESTIGATED_BY.csv'
 WITH (FORMAT csv, HEADER true, DELIMITER ',');
@@ -221,6 +212,7 @@ GROUP BY
 ORDER BY
     CrimeCount DESC
 LIMIT 10;
+
 
 -- Q3
 
@@ -275,7 +267,6 @@ SELECT
     c.type AS CrimeType,
     AVG(l.latitude) AS CentroidLatitude,
     AVG(l.longitude) AS CentroidLongitude,
-    -- Adjusting the rounding method for PostgreSQL
     ROUND((111.111 * STDDEV(l.latitude))::numeric, 2) AS StdLatitude_km,
     ROUND((111.111 * COS(STDDEV(l.latitude)) * STDDEV(l.longitude))::numeric, 2) AS StdLongitude_km,
     COUNT(DISTINCT l.postcode) AS DifferentArea
@@ -318,35 +309,28 @@ ORDER BY
 
 -- Q7
 
-WITH OfficerCrimes AS (
-    SELECT
-        o.badge_no AS OfficerBadge,
-        c.type AS CrimeType,
-        COUNT(*) FILTER (WHERE c.last_outcome = 'Under investigation') AS NumUnresolved,
-        COUNT(*) AS CrimeTypeFreq
-    FROM
-        Crimes c
-    JOIN Investigated_by ib ON c.id = ib.crime_id
-    JOIN Officer o ON ib.officer_id = o.id
-    GROUP BY
-        o.badge_no, c.type
-),
-RankedOfficerCrimes AS (
+SELECT
+    OfficerBadge,
+    OfficerSpecialization,
+    TotalNumUnresolved
+FROM (
     SELECT
         OfficerBadge,
         CrimeType AS OfficerSpecialization,
         SUM(NumUnresolved) OVER (PARTITION BY OfficerBadge) AS TotalNumUnresolved,
         CrimeTypeFreq,
         ROW_NUMBER() OVER (PARTITION BY OfficerBadge ORDER BY CrimeTypeFreq DESC) AS rank
-    FROM
-        OfficerCrimes
-)
-SELECT
-    OfficerBadge,
-    OfficerSpecialization,
-    TotalNumUnresolved
-FROM
-    RankedOfficerCrimes
+    FROM (
+		SELECT
+			o.badge_no AS OfficerBadge,
+			c.type AS CrimeType,
+			COUNT(*) FILTER (WHERE c.last_outcome = 'Under investigation') AS NumUnresolved,
+			COUNT(*) AS CrimeTypeFreq
+		FROM
+			Crimes c
+		JOIN Investigated_by ib ON c.id = ib.crime_id
+		JOIN Officer o ON ib.officer_id = o.id
+		GROUP BY o.badge_no, c.type) AS OfficerCrimes) AS RankedOfficerCrimes
 WHERE
     rank = 1
 ORDER BY
@@ -377,7 +361,13 @@ ORDER BY TotalCrimes DESC, TotalTraffic DESC, TotalPeople DESC
 
 -- Q9
 
-WITH AggregatedOutcomes AS (
+SELECT
+    CrimeType,
+    LastOutcome AS MostCommonOutcome,
+    Frequency,
+    TotalCases,
+    ROUND((Frequency::DECIMAL / TotalCases) * 100, 2) AS Percentage
+FROM (
     SELECT
         type AS CrimeType,
         last_outcome AS LastOutcome,
@@ -386,17 +376,7 @@ WITH AggregatedOutcomes AS (
         ROW_NUMBER() OVER (PARTITION BY type ORDER BY COUNT(*) DESC) AS rn
     FROM
         Crimes
-    GROUP BY
-        type, last_outcome
-)
-SELECT
-    CrimeType,
-    LastOutcome AS MostCommonOutcome,
-    Frequency,
-    TotalCases,
-    ROUND((Frequency::DECIMAL / TotalCases) * 100, 2) AS Percentage
-FROM
-    AggregatedOutcomes
+    GROUP BY type, last_outcome) AS AggregatedOutcomes
 WHERE rn = 1
 ORDER BY
     TotalCases DESC, CrimeType;
