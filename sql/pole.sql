@@ -192,6 +192,21 @@ WITH (FORMAT csv, HEADER true, DELIMITER ',');
 
 -- Queries
 
+-- Q1
+
+SELECT o.surname, o.badge_no, o.rank
+FROM officer o
+WHERE EXISTS (
+	SELECT ib.officer_id,
+		COUNT(DISTINCT ib.crime_id) AS TotCrimes
+	FROM investigated_by ib
+	WHERE o.id = ib.officer_id
+	GROUP BY ib.officer_id
+	HAVING COUNT(DISTINCT ib.crime_id) > 30
+)
+ORDER BY o.surname;
+
+
 -- Q2
 
 SELECT
@@ -386,4 +401,34 @@ WHERE rn = 1
 ORDER BY
     TotalCases DESC, CrimeType;
 
+
 -- Q10
+
+SELECT hp.person_id AS PersonID,
+    COUNT(DISTINCT ph.id) AS NumDistinctPhones,
+	SUM(cl.CallDuration) AS TotalCallTime,
+    ROUND(AVG(cl.CallDuration), 2) AS AvgCallDuration,
+    COUNT(DISTINCT cl.CallID) AS TotCalls,
+    COUNT(DISTINCT cl.CallDate) AS DistinctCallDate
+FROM Has_phone hp
+    LEFT JOIN Phones ph ON hp.phone_id = ph.id
+    JOIN (
+        SELECT cl.call_id AS CallID,
+			   cl.phone_id AS PhoneID,
+               pc.call_duration AS CallDuration ,
+               pc.call_date AS CallDate
+        FROM Caller AS cl
+            LEFT JOIN PhoneCalls pc ON pc.id = cl.call_id
+        WHERE pc.call_type = 'CALL'
+
+        UNION
+
+        SELECT cl.call_id AS CallID,
+		       cl.phone_id AS PhoneID,
+               pc.call_duration AS CallDuration,
+               pc.call_date AS CallDate
+        FROM Called AS cl
+            LEFT JOIN PhoneCalls pc ON pc.id = cl.call_id
+        WHERE pc.call_type = 'CALL'
+    ) cl ON cl.PhoneID = ph.id
+GROUP BY PersonID;
