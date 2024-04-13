@@ -352,7 +352,7 @@ HAVING COUNT(DISTINCT c.id) > 30;
 SELECT o.surname, o.badge_no, o.rank
 FROM officer o
 INNER JOIN OfficerCrimeCount occ ON o.id = occ.officer_id
-ORDER BY o.surname;
+ORDER BY o.badge_no;
 
 
 -- Q2

@@ -195,7 +195,7 @@ WHERE EXISTS (
 	GROUP BY ib.officer_id
 	HAVING COUNT(DISTINCT ib.crime_id) > 30
 )
-ORDER BY o.surname;
+ORDER BY o.badge_no;
 
 
 -- Q2

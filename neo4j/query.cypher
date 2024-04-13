@@ -1,4 +1,4 @@
-// Query 1: Find police officers linked to over 30 unique crime investigations, and it lists these officers' surnames,
+// Query 1: Find police officers linked to over 30 unique crime investigations, and list these officers' surnames,
 // badge numbers, and ranks, sorting the results alphabetically by surname.
 // COMPLETED AFTER 62 ms.
 
@@ -6,7 +6,7 @@ MATCH (o:Officer)<-[:INVESTIGATED_BY]-(c:Crime)
 WITH o, COUNT(DISTINCT c.id) AS TotCrimes
 WHERE TotCrimes > 30
 RETURN o.surname AS Surname, o.badge_no AS BadgeNo, o.rank AS Rank
-ORDER BY o.surname
+ORDER BY o.badge_no
 
 
 // Query 2: Identify crime hotspots by postcode, aggregating the number of crimes.
