@@ -203,14 +203,11 @@ ORDER BY o.surname;
 SELECT
     l.postcode AS PostCode,
     COUNT(c.id) AS CrimeCount
-FROM
-    locations l
+FROM locations l
 JOIN occurred_at o ON l.id = o.location_id
 JOIN Crimes c ON o.crime_id = c.id
-GROUP BY
-    l.postcode
-ORDER BY
-    CrimeCount DESC
+GROUP BY l.postcode
+ORDER BY CrimeCount DESC
 LIMIT 10;
 
 
@@ -229,18 +226,14 @@ FROM (
             l.postcode AS area,
             c.date,
             COUNT(DISTINCT c.id) AS crime_count
-        FROM
-            Crimes c
+        FROM Crimes c
         JOIN Occurred_at o ON c.id = o.crime_id
         JOIN Locations l ON o.location_id = l.id
-        GROUP BY
-            l.postcode, c.date
+        GROUP BY l.postcode, c.date
     ) AS d
 ) AS d1
-GROUP BY
-    d1.area
-ORDER BY
-    avg_daily_change DESC
+GROUP BY d1.area
+ORDER BY avg_daily_change DESC
 LIMIT 10;
 
 
@@ -251,14 +244,11 @@ SELECT
     v.model AS VehicleModel,
     COUNT(DISTINCT v.reg) AS VehicleCount,
     COUNT(DISTINCT c.id) AS CrimeCount
-FROM
-    Vehicles v
+FROM Vehicles v
 JOIN Involved_in i ON v.id = i.vehicle_id
 JOIN Crimes c ON i.crime_id = c.id
-GROUP BY
-    v.make, v.model
-ORDER BY
-    VehicleCount DESC;
+GROUP BY v.make, v.model
+ORDER BY VehicleCount DESC;
 
 
 -- Q5
@@ -270,14 +260,11 @@ SELECT
     ROUND((111.111 * STDDEV(l.latitude))::numeric, 2) AS StdLatitude_km,
     ROUND((111.111 * COS(STDDEV(l.latitude)) * STDDEV(l.longitude))::numeric, 2) AS StdLongitude_km,
     COUNT(DISTINCT l.postcode) AS DifferentArea
-FROM
-    Crimes c
+FROM Crimes c
 JOIN Occurred_at o ON c.id = o.crime_id
 JOIN Locations l ON o.location_id = l.id
-GROUP BY
-    c.type
-ORDER BY
-    DifferentArea DESC;
+GROUP BY c.type
+ORDER BY DifferentArea DESC;
 
 
 -- Q6
@@ -287,8 +274,7 @@ SELECT
     p.nhs_no AS NHS_Number,
     ph.phoneNo AS Phone_Number,
     COUNT(DISTINCT pc.id) AS No_Fam_Calls
-FROM
-    Crimes c
+FROM Crimes c
 JOIN Occurred_at o ON c.id = o.crime_id
 JOIN Locations l ON o.location_id = l.id
 JOIN Current_address ca ON l.id = ca.location_id
@@ -301,10 +287,8 @@ JOIN Has_phone hp2 ON calls.phone_id = hp2.phone_id
 WHERE
     c.id = 47413 AND
 	hp2.person_id NOT IN (SELECT person_id2 AS Relative FROM family_rel WHERE person_id1 = p.id)
-GROUP BY
-    Person, NHS_Number, Phone_Number
-ORDER BY
-    No_Fam_Calls DESC;
+GROUP BY Person, NHS_Number, Phone_Number
+ORDER BY No_Fam_Calls DESC;
 
 
 -- Q7
@@ -326,15 +310,12 @@ FROM (
 			c.type AS CrimeType,
 			COUNT(*) FILTER (WHERE c.last_outcome = 'Under investigation') AS NumUnresolved,
 			COUNT(*) AS CrimeTypeFreq
-		FROM
-			Crimes c
+		FROM Crimes c
 		JOIN Investigated_by ib ON c.id = ib.crime_id
 		JOIN Officer o ON ib.officer_id = o.id
 		GROUP BY o.badge_no, c.type) AS OfficerCrimes) AS RankedOfficerCrimes
-WHERE
-    rank = 1
-ORDER BY
-    TotalNumUnresolved DESC;
+WHERE rank = 1
+ORDER BY TotalNumUnresolved DESC;
 
 
 -- Q8
@@ -356,7 +337,7 @@ LEFT JOIN (
 	SELECT *
 	FROM called) AS all_calls ON hp.phone_id = all_calls.phone_id
 GROUP BY l.postcode
-ORDER BY TotalCrimes DESC, TotalTraffic DESC, TotalPeople DESC
+ORDER BY TotalCrimes DESC, TotalTraffic DESC, TotalPeople DESC;
 
 
 -- Q9
@@ -374,12 +355,10 @@ FROM (
         COUNT(*) AS Frequency,
         SUM(COUNT(*)) OVER (PARTITION BY type) AS TotalCases,
         ROW_NUMBER() OVER (PARTITION BY type ORDER BY COUNT(*) DESC) AS rn
-    FROM
-        Crimes
+    FROM Crimes
     GROUP BY type, last_outcome) AS AggregatedOutcomes
 WHERE rn = 1
-ORDER BY
-    TotalCases DESC, CrimeType;
+ORDER BY TotalCases DESC, CrimeType;
 
 
 -- Q10

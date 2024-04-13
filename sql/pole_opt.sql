@@ -400,12 +400,9 @@ SELECT
     v.model AS VehicleModel,
     COUNT(DISTINCT v.reg) AS VehicleCount,
     COUNT(DISTINCT v.crime_id) AS CrimeCount
-FROM
-    Vehicles v
-GROUP BY
-    v.make, v.model
-ORDER BY
-    VehicleCount DESC;
+FROM Vehicles v
+GROUP BY v.make, v.model
+ORDER BY VehicleCount DESC;
 
 
 -- Q5
@@ -419,10 +416,8 @@ SELECT
     COUNT(DISTINCT l.postcode) AS DifferentArea
 FROM Crimes c
 JOIN Locations l ON c.location_id = l.id
-GROUP BY
-    c.type
-ORDER BY
-    DifferentArea DESC;
+GROUP BY c.type
+ORDER BY DifferentArea DESC;
 
 
 -- Q7
@@ -463,22 +458,14 @@ SELECT
     COUNT(DISTINCT p.id) AS TotalPeople,
     COUNT(DISTINCT CASE WHEN ph.id = pc_from.from_phone_id THEN pc_from.id ELSE NULL END) 
     + COUNT(DISTINCT CASE WHEN ph.id = pc_to.to_phone_id THEN pc_to.id ELSE NULL END) AS TotalTraffic
-FROM 
-    locations l
-LEFT JOIN 
-    crimes c ON c.location_id = l.id
-JOIN 
-    people p ON p.address_id = l.id
-LEFT JOIN 
-    phones ph ON p.id = ph.owner_id
-LEFT JOIN 
-    phonecalls pc_from ON ph.id = pc_from.from_phone_id
-LEFT JOIN 
-    phonecalls pc_to ON ph.id = pc_to.to_phone_id
-GROUP BY 
-    l.postcode
-ORDER BY 
-    TotalCrimes DESC, TotalTraffic DESC, TotalPeople DESC;
+FROM locations l
+LEFT JOIN crimes c ON c.location_id = l.id
+JOIN people p ON p.address_id = l.id
+LEFT JOIN phones ph ON p.id = ph.owner_id
+LEFT JOIN phonecalls pc_from ON ph.id = pc_from.from_phone_id
+LEFT JOIN phonecalls pc_to ON ph.id = pc_to.to_phone_id
+GROUP BY l.postcode
+ORDER BY TotalCrimes DESC, TotalTraffic DESC, TotalPeople DESC;
 
 
 -- Q9
@@ -490,10 +477,8 @@ SELECT
     COUNT(*) AS Frequency,
     SUM(COUNT(*)) OVER (PARTITION BY type) AS TotalCases,
     ROW_NUMBER() OVER (PARTITION BY type ORDER BY COUNT(*) DESC) AS rn
-FROM
-    Crimes
-GROUP BY
-    type, last_outcome;
+FROM Crimes
+GROUP BY type, last_outcome;
 
 SELECT
     CrimeType,
@@ -501,8 +486,6 @@ SELECT
     Frequency,
     TotalCases,
     ROUND((Frequency::DECIMAL / TotalCases) * 100, 2) AS Percentage
-FROM
-    AggregatedCrimeOutcomes
+FROM AggregatedCrimeOutcomes
 WHERE rn = 1
-ORDER BY
-    TotalCases DESC, CrimeType;
+ORDER BY TotalCases DESC, CrimeType;
