@@ -13,7 +13,7 @@ ORDER BY o.badge_no
 // COMPLETED AFTER 178 ms.
 
 MATCH (l:Location)<-[:OCCURRED_AT]-(c:Crime)
-RETURN l.postcode, COUNT(c) AS crime_count
+RETURN l.postcode, COUNT(DISTINCT c) AS crime_count
 ORDER BY crime_count DESC
 LIMIT 10;
 
