@@ -8,7 +8,7 @@ CREATE (:Location {
   longitude: toFloat(row.longitude),
   address: row.address,
   postcode: row.postcode
-})
+});
 
 // Crimes
 LOAD CSV WITH HEADERS FROM 'file:///crime-investigation.nodes.Crime.csv' AS row

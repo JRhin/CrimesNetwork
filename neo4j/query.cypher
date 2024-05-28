@@ -6,7 +6,7 @@ MATCH (o:Officer)<-[:INVESTIGATED_BY]-(c:Crime)
 WITH o, COUNT(DISTINCT c.id) AS TotCrimes
 WHERE TotCrimes > 30
 RETURN o.surname AS Surname, o.badge_no AS BadgeNo, o.rank AS Rank
-ORDER BY o.badge_no
+ORDER BY o.badge_no;
 
 
 // Query 2: Identify crime hotspots by postcode, aggregating the number of crimes.
@@ -70,7 +70,7 @@ WHERE NOT (person)-[:FAMILY_REL]-(otherPerson)
   AND call.call_date >= crimeDate - duration('P10D') AND call.call_date < crimeDate
   AND personLocation.postcode = crimeArea
 RETURN (person.name +" "+person.surname) AS Person, person.nhs_no AS NHS_Number, phone.phoneNo AS Phone_Number, COUNT(DISTINCT call) AS No_Fam_Calls
-ORDER BY No_Fam_Calls DESC
+ORDER BY No_Fam_Calls DESC;
 
 
 // Query 7: For each officer, return the number of cases to which it has been assigned which last_outcome="Under investigation" 
@@ -86,7 +86,7 @@ MATCH (crime:Crime)-[:INVESTIGATED_BY]->(off:Officer)
 WHERE off.badge_no = OfficerBadge
     AND crime.last_outcome = "Under investigation"
 RETURN  OfficerBadge, OfficerSpecialization, COUNT(DISTINCT crime.id) AS NumUnresolved
-ORDER BY NumUnresolved DESC
+ORDER BY NumUnresolved DESC;
 
 
 // Query 8: For a given query date, return the total number of crimes occurred on that day for each area (post_code),
@@ -96,7 +96,7 @@ ORDER BY NumUnresolved DESC
 MATCH (c:Crime)-[:OCCURRED_AT]->(l:Location)<-[:CURRENT_ADDRESS]-(p:Person)-[:HAS_PHONE]->(ph:Phone)<-[:CALLED|:CALLER]-(cl:PhoneCall)
 WITH l.postcode AS Area, COUNT(DISTINCT c.id) AS TotalCrimes, COUNT(DISTINCT p) AS TotalPeople, COUNT(DISTINCT cl.id) AS TotalTraffic
 RETURN Area, TotalCrimes, TotalPeople, TotalTraffic
-ORDER BY TotalCrimes DESC, TotalTraffic DESC, TotalPeople DESC, Area DESC
+ORDER BY TotalCrimes DESC, TotalTraffic DESC, TotalPeople DESC, Area DESC;
 
 
 // Query 9: For each Crime Type return the most common outcome, its frequency,
@@ -108,7 +108,7 @@ WITH c.type AS CrimeType, c.last_outcome AS LastOutcome, count(*) AS Frequency
 ORDER BY Frequency DESC
 WITH CrimeType, COLLECT({LastOutcome: LastOutcome, Frequency: Frequency})[0] AS maxFreqPair, SUM(Frequency) AS TotalCases
 RETURN  CrimeType, maxFreqPair.LastOutcome AS MostCommonOutcome, maxFreqPair.Frequency AS Frequency, TotalCases, ROUND(100.0 * maxFreqPair.Frequency / TotalCases, 2) AS Percentage
-ORDER BY TotalCases DESC
+ORDER BY TotalCases DESC;
 
 
 // Query 10: This query aggregates phone communication data for individuals, calculating metrics like the number of distinct phones per person,
@@ -128,4 +128,4 @@ RETURN PersonID,
        ROUND(AvgCallDuration, 2) AS AvgCallDuration,
        TotCalls,
        DistinctCallDate
-ORDER BY PersonID
+ORDER BY PersonID;
