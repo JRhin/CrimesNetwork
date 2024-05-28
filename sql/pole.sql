@@ -183,7 +183,14 @@ WITH (FORMAT csv, HEADER true, DELIMITER ',');
 
 -- Queries
 
--- Q1
+/* Q1
+
+Find police officers linked to over 30 unique
+crime investigations, and list these officers'
+surnames, badge numbers, and ranks,
+sorting the results alphabetically by
+surname.
+*/
 
 SELECT o.surname, o.badge_no, o.rank
 FROM officer o
@@ -198,7 +205,11 @@ WHERE EXISTS (
 ORDER BY o.badge_no;
 
 
--- Q2
+/* Q2
+
+Identify crime hotspots by postcode,
+aggregating the number of crimes.
+*/
 
 SELECT
     l.postcode AS PostCode,
@@ -211,7 +222,16 @@ ORDER BY CrimeCount DESC
 LIMIT 10;
 
 
--- Q3
+/* Q3
+
+Analyze the evolution of crime types over different
+areas it calculates the absolute daily change in
+crime counts from one day to the next instead of
+growth rates.
+This change measures the volatility without
+considering the direction of the change (increase or
+decrease).
+*/
 
 SELECT
     d1.area,
@@ -237,7 +257,11 @@ ORDER BY avg_daily_change DESC
 LIMIT 10;
 
 
--- Q4
+/* Q4
+
+Find the usage frequency for each vehicle
+type for the "vehicle crimes".
+*/
 
 SELECT
     v.make AS VehicleBrand,
@@ -251,7 +275,15 @@ GROUP BY v.make, v.model
 ORDER BY VehicleCount DESC;
 
 
--- Q5
+/* Q5
+
+For each type of crime type evaluate the standard
+deviation of the distance between the locations of the
+related crimes in order to understand if crimes are pretty
+concentrated or spread out in different areas of the city.
+Also report the total number of areas involved in each
+type of crime.
+*/
 
 SELECT
     c.type AS CrimeType,
@@ -267,7 +299,17 @@ GROUP BY c.type
 ORDER BY DifferentArea DESC;
 
 
--- Q6
+/* Q6
+
+Identify people that possibly had crime related phone
+calls.
+This query, for a specific query crime, returns people
+that have had (as a caller or a called) a lot of calls with
+people that do not belong to their family (order by
+"No_fam_calls" counter), in the period of 10 days before
+the crime and that live in the same area (“post_code”)
+where the crime occurred.
+*/
 
 SELECT
     p.name || ' ' || p.surname AS Person,
@@ -291,7 +333,14 @@ GROUP BY Person, NHS_Number, Phone_Number
 ORDER BY No_Fam_Calls DESC;
 
 
--- Q7
+/* Q7
+
+For each officer, return the number of cases to which
+it has been assigned which last_outcome="Under
+investigation" as "Num_unresolved", and the most
+frequent type of crime to which it has been assigned.
+Order the result by "Num_unresolved".
+*/
 
 SELECT
     OfficerBadge,
@@ -318,7 +367,14 @@ WHERE rank = 1
 ORDER BY TotalNumUnresolved DESC;
 
 
--- Q8
+/* Q8
+
+For a given query date, return the total number of
+crimes occurred on that day for each area
+(post_code), the total number of people living in
+each area end the total number of calls made by
+the inhabitants on that day.
+*/
 
 SELECT l.postcode AS Area,
 	   COUNT(DISTINCT c.id) AS TotalCrimes,
@@ -340,7 +396,13 @@ GROUP BY l.postcode
 ORDER BY TotalCrimes DESC, TotalTraffic DESC, TotalPeople DESC;
 
 
--- Q9
+/* Q9
+
+For each Crime Type return the most common outcome,
+its frequency, the total number of cases and the
+percentage of the most common outcome over all the
+total cases.
+*/
 
 SELECT
     CrimeType,
@@ -361,7 +423,14 @@ WHERE rn = 1
 ORDER BY TotalCases DESC, CrimeType;
 
 
--- Q10
+/* Q10
+
+This query aggregates phone communication data for
+individuals, calculating metrics like the number of
+distinct phones per person, total and average call
+durations, total different calls, and the number of
+unique call days.
+*/
 
 SELECT hp.person_id AS PersonID,
     COUNT(DISTINCT ph.id) AS NumDistinctPhones,
